@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { AuthService } from './auth.service';
 import { AuthSchema, AuthDto } from './dto/auth.dto';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -10,7 +11,7 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User successfully registered' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async register(@Body() body: AuthDto) {
     const parsedData = AuthSchema.safeParse(body);
@@ -25,6 +26,7 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: 'Login and get access token' })
   @ApiResponse({ status: 200, description: 'Successful login' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async login(@Body() body: AuthDto) {

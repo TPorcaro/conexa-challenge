@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -16,10 +16,13 @@ export class AuthService {
       throw new BadRequestException('User already exists');
     }
   
-    const hashedPassword = await bcrypt.hash(password, 10);
-    return this.usersService.createUser(email, hashedPassword, role);
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      return this.usersService.createUser(email, hashedPassword, role);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create user');
+    }
   }
-  
 
   async login(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
@@ -27,7 +30,7 @@ export class AuthService {
       throw new UnauthorizedException('Wrong credentials');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = { id: user.id, email: user.email, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
     };
