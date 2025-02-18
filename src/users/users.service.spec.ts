@@ -73,10 +73,10 @@ describe('UsersService', () => {
 
   describe('updatePassword', () => {
     it('should throw ForbiddenException if non-admin tries to update another user', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser); // Asegura que el usuario existe
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(mockUser);
   
       const updatePasswordDto = { password: 'newpassword123' };
-      const nonAdminUser = { ...mockUser, role: 'USER' as Role }; // Simula un usuario normal
+      const nonAdminUser = { ...mockUser, role: 'USER' as Role };
   
       await expect(service.updatePassword('2', updatePasswordDto, nonAdminUser))
         .rejects.toThrow(ForbiddenException);
