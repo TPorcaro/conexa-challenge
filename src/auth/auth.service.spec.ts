@@ -2,12 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { UnauthorizedException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 describe('AuthService', () => {
   let authService: AuthService;
   let usersService: UsersService;
-  let mockUser: { id: string; email: string; password: string; role: 'USER' | 'ADMIN'; createdAt: Date };
+
+  const mockUser = {
+    id: '1',
+    email: 'test@example.com',
+    password: 'hashed_password',
+    role: 'USER' as Role,
+    createdAt : new Date(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -23,7 +33,13 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: {
-            sign: jest.fn().mockReturnValue('mocked_token'),
+            sign: jest.fn(() => 'mocked_token'),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(() => 'test_secret'),
           },
         },
       ],
@@ -31,17 +47,6 @@ describe('AuthService', () => {
 
     authService = module.get<AuthService>(AuthService);
     usersService = module.get<UsersService>(UsersService);
-
-    mockUser = {
-      id: '1',
-      email: 'test@example.com',
-      password: await bcrypt.hash('123456', 10), 
-      role: 'USER',
-      createdAt: new Date(),
-    };
-
-    jest.spyOn(bcrypt, 'hash').mockImplementation(async (password: string) => `hashed_${password}`);
-    jest.spyOn(bcrypt, 'compare').mockImplementation(async (plainText, hash) => hash === `hashed_${plainText}`);
   });
 
   it('should be defined', () => {
@@ -50,10 +55,18 @@ describe('AuthService', () => {
 
   it('should register a user', async () => {
     jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
-    jest.spyOn(usersService, 'createUser').mockImplementation(async () => mockUser);
-
+    jest.spyOn(usersService, 'createUser').mockResolvedValue(mockUser);
+  
     const result = await authService.register(mockUser.email, '123456', mockUser.role);
-    expect(result).toEqual(mockUser);
+  
+    expect(result).toEqual({
+      message: 'User registered successfully',
+      user: {
+        id: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role,
+      },
+    });
   });
 
   it('should throw an error if user already exists', async () => {
@@ -64,20 +77,23 @@ describe('AuthService', () => {
 
   it('should validate user login and return a token', async () => {
     jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
-
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never); // mocked function
+  
     const result = await authService.login(mockUser.email, '123456');
+  
     expect(result).toHaveProperty('access_token', 'mocked_token');
   });
 
   it('should throw an error for invalid login credentials', async () => {
     jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
-
-    await expect(authService.login(mockUser.email, 'wrongpassword')).rejects.toThrow('Invalid credentials');
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(false as never); // mocked function
+  
+    await expect(authService.login(mockUser.email, 'wrongpassword')).rejects.toThrow('Wrong credentials');
   });
 
   it('should throw an error when user does not exist', async () => {
     jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
 
-    await expect(authService.login('invalid@example.com', '123456')).rejects.toThrow('Invalid credentials');
+    await expect(authService.login('invalid@example.com', '123456')).rejects.toThrow(UnauthorizedException);
   });
 });

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorE
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import * as bcrypt from 'bcryptjs';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -45,17 +46,15 @@ export class UsersService {
    * @param email The email of the user.
    * @returns The user object if found.
    * @throws NotFoundException If the user does not exist.
-   * @throws InternalServerErrorException If the query fails.
    */
   async findByEmail(email: string) {
-    try {
-      const user = await this.prisma.user.findUnique({ where: { email } });
-      if (!user) throw new NotFoundException(`User with email ${email} not found`);
-      return user;
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to find user by email');
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
     }
+    return user;
   }
+
 
   /**
    * Finds a user by ID.
@@ -85,24 +84,21 @@ export class UsersService {
    * @throws NotFoundException If the user does not exist.
    * @throws InternalServerErrorException If the update fails.
    */
-  async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDto, currentUser) {
-    try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user) throw new NotFoundException(`User not found`);
-
-      // If not an admin and trying to modify another user, deny access
-      if (currentUser.role !== 'ADMIN' && currentUser.id !== userId) {
-        throw new ForbiddenException('You can only change your own password');
-      }
-
-      const hashedPassword = await bcrypt.hash(updatePasswordDto.password, 10);
-      return await this.prisma.user.update({
-        where: { id: userId },
-        data: { password: hashedPassword },
-      });
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to update password');
+  async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDto, currentUser: User) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User not found`);
     }
+
+    if (currentUser.role !== 'ADMIN' && currentUser.id !== userId) {
+      throw new ForbiddenException('You can only change your own password');
+    }
+
+    const hashedPassword = await bcrypt.hash(updatePasswordDto.password, 10);
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
   }
 
   /**
@@ -116,10 +112,14 @@ export class UsersService {
   async deleteUser(userId: string) {
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user) throw new NotFoundException(`User not found`);
-
+      if (!user) {
+        throw new NotFoundException(`User not found`);
+      }
       return await this.prisma.user.delete({ where: { id: userId } });
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Failed to delete user');
     }
   }
