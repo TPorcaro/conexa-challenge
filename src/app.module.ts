@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MoviesModule } from './movies/movies.module';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { MoviesModule } from './movies/movies.module';
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),],
   controllers: [AppController],
-  providers: [],
+  providers: [AppService],
 })
 export class AppModule { }

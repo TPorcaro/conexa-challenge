@@ -8,9 +8,9 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start --watch",
-    "start:dev": "nodemon --watch src --ext ts --exec 'yarn start:debug'",
-    "start:watch": "nodemon --watch src --ext ts --exec 'yarn start:dev'",
+    "start": "nest start",
+    "start:dev": "nest start --watch ",
+    "start:watch": "nest start -- watch",
     "start:debug": "nest start --debug --watch",
     "prisma:generate": "prisma generate",
     "start:prod": "node dist/main",
