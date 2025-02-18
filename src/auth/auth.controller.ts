@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UsePipes, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { AuthSchema, AuthDto, AuthSwaggerDto } from './dto/auth.dto';
+import { AuthSchema, AuthUserDto } from './dto/auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -12,7 +12,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User successfully registered' })
   @ApiResponse({ status: 400, description: 'Validation failed' })
-  async register(@Body() body: AuthSwaggerDto) {
+  async register(@Body() body: AuthUserDto) {
     const parsedData = AuthSchema.safeParse(body);
     if (!parsedData.success) {
       throw new BadRequestException(parsedData.error.errors);
@@ -25,7 +25,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Successful login' })
   @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() body: AuthSwaggerDto) {
+  async login(@Body() body: AuthUserDto) {
     const parsedData = AuthSchema.safeParse(body);
     if (!parsedData.success) {
       throw new BadRequestException(parsedData.error.errors);

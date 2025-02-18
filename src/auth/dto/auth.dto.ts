@@ -8,7 +8,7 @@ export const AuthSchema = z.object({
 });
 
 export type AuthDto = z.infer<typeof AuthSchema>;
-export class AuthSwaggerDto {
+export class AuthUserDto {
   @ApiProperty({ example: 'user@example.com', description: 'User email' })
   email: string;
 
