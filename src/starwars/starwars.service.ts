@@ -5,7 +5,7 @@ import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class StarWarsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Synchronizes movies from the Star Wars API.
@@ -19,9 +19,7 @@ export class StarWarsService {
       if (response.status !== 200) {
         throw new InternalServerErrorException('Failed to fetch movies from Star Wars API');
       }
-
       const swapiMovies = response.data.results;
-      
       for (const movie of swapiMovies) {
         const existingMovie = await this.prisma.movie.findFirst({
           where: { title: movie.title },

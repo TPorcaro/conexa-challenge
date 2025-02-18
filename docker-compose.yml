@@ -1,13 +1,34 @@
+version: '3.8'
+
 services:
   app:
     build: .
-    container_name: nestjs_app
+    container_name: conexa_challenge
     restart: always
-    ports:
-      - "3000:3000"
+    depends_on:
+      - db
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=file:./dev.db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/conexa_db?schema=public
     volumes:
       - .:/app
-    command: ["yarn", "start:dev"]
+      - /app/node_modules 
+    ports:
+      - "3000:3000"
+    command: ["yarn", "start:watch"]
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: conexa_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

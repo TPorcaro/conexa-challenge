@@ -1,17 +1,20 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import * as bcrypt from 'bcryptjs';
+
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
-   * Creates a new user in the database.
-   * @param email The email of the user.
-   * @param password The hashed password.
-   * @param role The role of the user (USER or ADMIN).
-   * @returns The created user object.
-   * @throws InternalServerErrorException If the user cannot be created.
-   */
+ * Creates a new user in the database.
+ * @param email The email of the user.
+ * @param password The hashed password.
+ * @param role The role of the user (USER or ADMIN).
+ * @returns The created user object.
+ * @throws InternalServerErrorException If the user cannot be created.
+ */
   async createUser(email: string, password: string, role: 'USER' | 'ADMIN') {
     try {
       return await this.prisma.user.create({
@@ -23,8 +26,23 @@ export class UsersService {
   }
 
   /**
+   * Retrieves all users.
+   * @returns A list of users with their ID, email, and role.
+   * @throws InternalServerErrorException If the query fails.
+   */
+  async getAllUsers() {
+    try {
+      return await this.prisma.user.findMany({
+        select: { id: true, email: true, role: true },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to retrieve users');
+    }
+  }
+
+  /**
    * Finds a user by email.
-   * @param email The email to search for.
+   * @param email The email of the user.
    * @returns The user object if found.
    * @throws NotFoundException If the user does not exist.
    * @throws InternalServerErrorException If the query fails.
@@ -35,9 +53,6 @@ export class UsersService {
       if (!user) throw new NotFoundException(`User with email ${email} not found`);
       return user;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
       throw new InternalServerErrorException('Failed to find user by email');
     }
   }
@@ -55,10 +70,57 @@ export class UsersService {
       if (!user) throw new NotFoundException(`User with ID ${id} not found`);
       return user;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
       throw new InternalServerErrorException('Failed to find user by ID');
+    }
+  }
+
+  /**
+   * Updates the password of a user.
+   * Admins can update any user, while regular users can only update their own password.
+   * @param userId The ID of the user whose password is being updated.
+   * @param updatePasswordDto The DTO containing the new password.
+   * @param currentUser The currently authenticated user.
+   * @returns The updated user object.
+   * @throws ForbiddenException If a regular user tries to update another user's password.
+   * @throws NotFoundException If the user does not exist.
+   * @throws InternalServerErrorException If the update fails.
+   */
+  async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDto, currentUser) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new NotFoundException(`User not found`);
+
+      // If not an admin and trying to modify another user, deny access
+      if (currentUser.role !== 'ADMIN' && currentUser.id !== userId) {
+        throw new ForbiddenException('You can only change your own password');
+      }
+
+      const hashedPassword = await bcrypt.hash(updatePasswordDto.password, 10);
+      return await this.prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update password');
+    }
+  }
+
+  /**
+   * Deletes a user.
+   * Only admins can perform this action.
+   * @param userId The ID of the user to delete.
+   * @returns The deleted user object.
+   * @throws NotFoundException If the user does not exist.
+   * @throws InternalServerErrorException If the deletion fails.
+   */
+  async deleteUser(userId: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new NotFoundException(`User not found`);
+
+      return await this.prisma.user.delete({ where: { id: userId } });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to delete user');
     }
   }
 }

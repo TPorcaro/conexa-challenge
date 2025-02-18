@@ -2,26 +2,26 @@ FROM node:20
 
 WORKDIR /app
 
-# Instala NestJS CLI globalmente
+# Install NestJS CLI globally
 RUN yarn global add @nestjs/cli
 
-# Asegurar que el binario de nest está en el PATH
+# Ensure the NestJS CLI is in PATH
 ENV PATH=$PATH:/root/.yarn/bin
 
-# Copia solo package.json y yarn.lock
+# Copy package files
 COPY package.json yarn.lock ./
 
-# Instala las dependencias
+# Install dependencies
 RUN yarn install --frozen-lockfile --ignore-engines
 
-# Copia el resto del código (incluyendo `prisma/schema.prisma`)
+# Copy the application source
 COPY . .
 
-# Asegurar que Prisma Client se genere correctamente
-RUN if [ -f "prisma/schema.prisma" ]; then yarn prisma generate; else echo "⚠️ WARNING: No se encontró prisma/schema.prisma"; fi
+# Generate Prisma Client
+RUN yarn prisma generate
 
-# Expone el puerto 3000
+# Expose API port
 EXPOSE 3000
 
-# Comando para iniciar la aplicación
-CMD ["yarn", "start:dev"]
+# Start the application
+CMD ["yarn", "start:watch"]
