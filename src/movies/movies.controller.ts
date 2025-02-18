@@ -1,10 +1,8 @@
-import { 
-  Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, NotFoundException, InternalServerErrorException 
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { MoviesService } from './movies.service';
-import { Roles } from '../auth/roles.decorator';
-import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { StarWarsService } from '../starwars/starwars.service';
 
@@ -14,20 +12,16 @@ import { StarWarsService } from '../starwars/starwars.service';
 @UseGuards(AuthGuard('jwt'))
 export class MoviesController {
   constructor(
-    private readonly moviesService: MoviesService, 
+    private readonly moviesService: MoviesService,
     private readonly starWarsService: StarWarsService
-  ) {}
+  ) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all movies' })
   @ApiResponse({ status: 200, description: 'List of movies' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getAllMovies() {
-    try {
-      return await this.moviesService.getAllMovies();
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to retrieve movies');
-    }
+    return await this.moviesService.getAllMovies();
   }
 
   @Get(':id')
@@ -38,14 +32,7 @@ export class MoviesController {
   @ApiResponse({ status: 404, description: 'Movie not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getMovieById(@Param('id') id: string) {
-    try {
-      return await this.moviesService.getMovieById(id);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to retrieve movie');
-    }
+    return await this.moviesService.getMovieById(id);
   }
 
   @Post()
@@ -55,11 +42,7 @@ export class MoviesController {
   @ApiResponse({ status: 201, description: 'Movie created successfully' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async createMovie(@Body() data: { title: string; description?: string; releaseYear: number; genre: string }) {
-    try {
-      return await this.moviesService.createMovie(data);
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to create movie');
-    }
+    return await this.moviesService.createMovie(data);
   }
 
   @Patch(':id')
@@ -70,14 +53,7 @@ export class MoviesController {
   @ApiResponse({ status: 404, description: 'Movie not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async updateMovie(@Param('id') id: string, @Body() data: Partial<{ title: string; description: string; releaseYear: number; genre: string }>) {
-    try {
-      return await this.moviesService.updateMovie(id, data);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to update movie');
-    }
+    return await this.moviesService.updateMovie(id, data);
   }
 
   @Delete(':id')
@@ -88,14 +64,7 @@ export class MoviesController {
   @ApiResponse({ status: 404, description: 'Movie not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async deleteMovie(@Param('id') id: string) {
-    try {
-      return await this.moviesService.deleteMovie(id);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to delete movie');
-    }
+    return await this.moviesService.deleteMovie(id);
   }
 
   @Get('sync')
@@ -105,10 +74,6 @@ export class MoviesController {
   @ApiResponse({ status: 200, description: 'Movies synchronized successfully' })
   @ApiResponse({ status: 500, description: 'Failed to sync movies' })
   async syncMovies() {
-    try {
-      return await this.starWarsService.syncMoviesFromSwapi();
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to sync movies');
-    }
+    return await this.starWarsService.syncMoviesFromSwapi();
   }
 }

@@ -1,11 +1,18 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class StarWarsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Synchronizes movies from the Star Wars API.
+   * Runs every 15 minutes.
+   * @throws InternalServerErrorException if the synchronization fails.
+   */
+  @Cron('*/15 * * * *')
   async syncMoviesFromSwapi() {
     try {
       const response = await axios.get('https://swapi.dev/api/films/');
@@ -14,7 +21,7 @@ export class StarWarsService {
       }
 
       const swapiMovies = response.data.results;
-
+      
       for (const movie of swapiMovies) {
         const existingMovie = await this.prisma.movie.findFirst({
           where: { title: movie.title },
